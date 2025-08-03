@@ -6,16 +6,27 @@ on:
 
 jobs:
   invite:
-    # only run if the issue has the “access request” label
+    # only run on “access request” template issues
     if: contains(github.event.issue.labels.*.name, 'access request')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Extract GitHub username from issue body
+        id: extract
+        run: |
+          # Grab the line after the “Your GitHub username” prompt
+          USERNAME=$(echo "${{ github.event.issue.body }}" \
+            | grep -A1 "Your GitHub username" \
+            | tail -n1 \
+            | xargs)
+          echo "Extracted username: $USERNAME"
+          echo "username=$USERNAME" >> $GITHUB_OUTPUT
+
       - name: Invite user to private repo
         uses: peter-evans/invite-collaborator@v2
         with:
-          repo: jseihee/senescence-classif   
-          user: ${{ github.event.issue.body | fromJsonSafe }}  # or parse out the username field
+          repo: YOUR_USER/YOUR_PRIVATE_REPO    # ← change this
+          user: ${{ steps.extract.outputs.username }}
           permission: pull
           token: ${{ secrets.PERSONAL_TOKEN }}
 
@@ -24,6 +35,6 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Hi @${{ github.event.issue.body.github_username }}!  
-            You’ve been invited to **jseihee/senescence-classifO**.  
-            Check your notifications to accept.
+            Hi @${{ steps.extract.outputs.username }}!  
+            You’ve been invited to **YOUR_USER/YOUR_PRIVATE_REPO**.  
+            Check your GitHub notifications to accept.
