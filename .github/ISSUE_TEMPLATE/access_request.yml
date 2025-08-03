@@ -9,4 +9,4 @@ body:
     attributes:
       label: "Your GitHub username"
       description: "I’ll invite you to my private repo once you submit this."
-      placeholder: "jseihee"
+      placeholder: "username"
