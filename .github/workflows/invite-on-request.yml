@@ -1,6 +1,5 @@
-name: Invite on Access Request
+name: "Invite on Access Request"
 
-# ── Grant the workflow permission to post comments on issues ───────────────
 permissions:
   issues: write
   contents: read
@@ -11,28 +10,26 @@ on:
 
 jobs:
   invite:
-    # only handle issues created from your template
     if: startsWith(github.event.issue.title, '[ACCESS REQUEST]')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug: dump issue body
+      - name: "Debug: Dump issue body"
         run: |
           echo "=== ISSUE BODY BEGIN ==="
           echo "${{ github.event.issue.body }}"
           echo "=== ISSUE BODY END ==="
 
-      - name: Extract GitHub username
+      - name: "Extract GitHub username"
         id: extract
         run: |
-          # find the line after “Your GitHub username” and trim whitespace
           USERNAME=$(echo "${{ github.event.issue.body }}" \
             | awk '/Your GitHub username/{ getline; print; exit }' \
             | xargs)
           echo "Extracted username: '$USERNAME'"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
 
-      - name: Invite user to private repo via API
+      - name: "Invite user to private repo via API"
         run: |
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.PERSONAL_TOKEN }}" \
@@ -40,7 +37,7 @@ jobs:
             https://api.github.com/repos/jseihee/senescence-classif/collaborators/${{ steps.extract.outputs.username }} \
             -d '{"permission":"pull"}'
 
-      - name: Comment confirmation
+      - name: "Comment confirmation"
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
