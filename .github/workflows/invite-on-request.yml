@@ -7,35 +7,46 @@ permissions:
 on:
   issues:
     types:
+      - opened
       - labeled
 
 jobs:
-  invite:
-    # only run when label exactly equals "approved"
-    if: github.event.label.name == 'approved' 
+  # 1. Acknowledge new requests
+  acknowledge:
+    if: github.event.action == 'opened'
     runs-on: ubuntu-latest
-
     steps:
-      - name: "Debug: Dump issue body"
-        run: |
-          echo "=== ISSUE BODY BEGIN ==="
-          echo "${{ github.event.issue.body }}"
-          echo "=== ISSUE BODY END ==="
+      - name: Acknowledge request
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Thanks @${{ github.event.issue.user.login }}!  
+            Your access request has been received. A maintainer will review it shortly.
+      - name: Assign to maintainer
+        uses: peter-evans/assign-issue@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          assignees: jseihee
 
-      - name: "Extract GitHub username"
+  # 2. Invite once approved
+  invite:
+    needs: acknowledge
+    if: |
+      github.event.action == 'labeled' && 
+      github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract GitHub username
         id: extract
         run: |
           BODY="${{ github.event.issue.body }}"
-          echo "=== ISSUE BODY ==="
-          echo "$BODY"
-          # Grab the last non-empty line of the body
           USERNAME=$(echo "$BODY" \
             | awk '/./{ line=$0 } END{ print line }' \
             | xargs)
-          echo "Extracted username: '$USERNAME'"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
 
-      - name: "Invite user to private repo via API"
+      - name: Invite user to private repo via API
         run: |
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.PERSONAL_TOKEN }}" \
@@ -43,11 +54,11 @@ jobs:
             https://api.github.com/repos/jseihee/senescence-classif/collaborators/${{ steps.extract.outputs.username }} \
             -d '{"permission":"pull"}'
 
-      - name: "Comment confirmation"
+      - name: Comment confirmation
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
             Hi @${{ steps.extract.outputs.username }}!  
-            You’ve been approved and invited to **jseihee/senescence-classif** with read-only access.  
+            Your request has been **approved** and an invite has been sent.  
             Please check your GitHub notifications to accept.
