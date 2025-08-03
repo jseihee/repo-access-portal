@@ -1,0 +1,28 @@
+name: "Invite on Access Request"
+on:
+  issues:
+    types: [opened]
+    # only for Access Request issues
+    filters:
+      labels: ["access request"]
+
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Invite user to private repo"
+        uses: peter-evans/invite-collaborator@v2
+        with:
+          repo: jseihee/senescence-classif     
+          user: ${{ github.event.issue.body | fromJsonSafe }}   # we’ll parse the body
+          permission: pull                 # read-only; change to 'push' if needed
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: "Comment confirmation"
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Hi @${{ github.event.issue.body.github_username }}!  
+            You’ve been invited to **jseihee/senescence-classif**.  
+            Please check your email or GitHub notifications.
