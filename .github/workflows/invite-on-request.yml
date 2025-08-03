@@ -1,34 +1,44 @@
 name: Invite on Access Request
 
+# ── Grant the workflow permission to post comments on issues ───────────────
+permissions:
+  issues: write
+  contents: read
+
 on:
   issues:
     types: [opened]
 
 jobs:
   invite:
-    # only run for your template-based issue
+    # only handle issues created from your template
     if: startsWith(github.event.issue.title, '[ACCESS REQUEST]')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug: dump issue body
+        run: |
+          echo "=== ISSUE BODY BEGIN ==="
+          echo "${{ github.event.issue.body }}"
+          echo "=== ISSUE BODY END ==="
+
       - name: Extract GitHub username
         id: extract
         run: |
+          # find the line after “Your GitHub username” and trim whitespace
           USERNAME=$(echo "${{ github.event.issue.body }}" \
-            | grep -A1 "Your GitHub username" \
-            | tail -n1 \
+            | awk '/Your GitHub username/{ getline; print; exit }' \
             | xargs)
+          echo "Extracted username: '$USERNAME'"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
 
       - name: Invite user to private repo via API
         run: |
-          echo "Inviting ${{ steps.extract.outputs.username }} to jseihee/senescence-classif…"
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.PERSONAL_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/jseihee/senescence-classif/collaborators/${{ steps.extract.outputs.username }} \
             -d '{"permission":"pull"}'
-        # The "pull" permission gives read‐only access. Change to "push" if you want write.
 
       - name: Comment confirmation
         uses: peter-evans/create-or-update-comment@v4
@@ -36,5 +46,5 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
           body: |
             Hi @${{ steps.extract.outputs.username }}!  
-            I’ve invited you to **jseihee/senescence-classif** (read access).  
-            Check your GitHub notifications to accept.
+            I’ve invited you to **jseihee/senescence-classif** with read-only access.  
+            Please check your GitHub notifications to accept.
