@@ -1,5 +1,5 @@
 name: "Access Request" # The name of issue
-description: "Use this issue to request access to the private repo"
+description: "Use this issue to request access to my private repositories"
 title: "[ACCESS REQUEST]"
 labels:
   - access request
@@ -8,5 +8,5 @@ body:
     id: github_username
     attributes:
       label: "Your GitHub username"
-      description: "We’ll invite you to the private repo once you submit this."
+      description: "I’ll invite you to my private repo once you submit this."
       placeholder: "jseihee"
