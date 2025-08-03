@@ -6,11 +6,13 @@ permissions:
 
 on:
   issues:
-    types: [opened]
+    types:
+      - labeled
 
 jobs:
   invite:
-    if: startsWith(github.event.issue.title, '[ACCESS REQUEST]')
+    # only run when label exactly equals "approved"
+    if: github.event.label.name == 'approved' 
     runs-on: ubuntu-latest
 
     steps:
@@ -20,15 +22,6 @@ jobs:
           echo "${{ github.event.issue.body }}"
           echo "=== ISSUE BODY END ==="
 
-      # - name: "Extract GitHub username"
-        # id: extract
-        # run: |
-        #   USERNAME=$(echo "${{ github.event.issue.body }}" \
-        #     | awk '/Your GitHub username/{ getline; print; exit }' \
-        #     | xargs)
-        #   echo "Extracted username: '$USERNAME'"
-        #   echo "username=$USERNAME" >> $GITHUB_OUTPUT
-        #     - name: "Extract GitHub username"
       - name: "Extract GitHub username"
         id: extract
         run: |
@@ -41,8 +34,6 @@ jobs:
             | xargs)
           echo "Extracted username: '$USERNAME'"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
-
-
 
       - name: "Invite user to private repo via API"
         run: |
@@ -58,5 +49,5 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
           body: |
             Hi @${{ steps.extract.outputs.username }}!  
-            I’ve invited you to **jseihee/senescence-classif** with read-only access.  
+            You’ve been approved and invited to **jseihee/senescence-classif** with read-only access.  
             Please check your GitHub notifications to accept.
