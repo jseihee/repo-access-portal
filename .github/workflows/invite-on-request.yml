@@ -2,18 +2,17 @@ name: Invite on Access Request
 
 on:
   issues:
-    types: [opened]
+    types:
+      - opened
+      - labeled
 
 jobs:
   invite:
+    # only continue if the access-request label is now on the issue
     if: contains(github.event.issue.labels.*.name, 'access request')
     runs-on: ubuntu-latest
 
     steps:
-      - name: List incoming issue labels
-        run: |
-          echo "Labels: ${{ toJson(github.event.issue.labels.*.name) }}"
-
       - name: Extract GitHub username
         id: extract
         run: |
@@ -38,4 +37,4 @@ jobs:
           body: |
             Hi @${{ steps.extract.outputs.username }}!  
             You’ve been invited to **jseihee/senescence-classif**.  
-            Please check your GitHub notifications to accept.
+            Check your GitHub notifications to accept.
