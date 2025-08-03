@@ -21,13 +21,26 @@ jobs:
           echo "=== ISSUE BODY END ==="
 
       - name: "Extract GitHub username"
+        # id: extract
+        # run: |
+        #   USERNAME=$(echo "${{ github.event.issue.body }}" \
+        #     | awk '/Your GitHub username/{ getline; print; exit }' \
+        #     | xargs)
+        #   echo "Extracted username: '$USERNAME'"
+        #   echo "username=$USERNAME" >> $GITHUB_OUTPUT
+        #     - name: "Extract GitHub username"
         id: extract
         run: |
-          USERNAME=$(echo "${{ github.event.issue.body }}" \
-            | awk '/Your GitHub username/{ getline; print; exit }' \
+          BODY="${{ github.event.issue.body }}"
+          echo "Full issue body:"
+          echo "$BODY"
+          # grab whatever follows "Your GitHub username:" on that same line
+          USERNAME=$(echo "$BODY" \
+            | grep -oP '(?<=Your GitHub username:\s*).+' \
             | xargs)
           echo "Extracted username: '$USERNAME'"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
+
 
       - name: "Invite user to private repo via API"
         run: |
