@@ -6,31 +6,27 @@ on:
 
 jobs:
   invite:
-    # only run on issues labeled "access request"
     if: contains(github.event.issue.labels.*.name, 'access request')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug: List incoming labels
+      - name: List incoming issue labels
         run: |
           echo "Labels: ${{ toJson(github.event.issue.labels.*.name) }}"
 
-      - name: Extract GitHub username from issue body
+      - name: Extract GitHub username
         id: extract
         run: |
-          # Look for the line beginning with "Your GitHub username"
-          # then grab the next line as the actual username.
           USERNAME=$(echo "${{ github.event.issue.body }}" \
             | grep -A1 "Your GitHub username" \
             | tail -n1 \
             | xargs)
-          echo "Extracted username: $USERNAME"
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
 
       - name: Invite user to private repo
         uses: peter-evans/invite-collaborator@v2
         with:
-          repo: jseihee/senescence-classif   
+          repo: jseihee/senescence-classif
           user: ${{ steps.extract.outputs.username }}
           permission: pull
           token: ${{ secrets.PERSONAL_TOKEN }}
