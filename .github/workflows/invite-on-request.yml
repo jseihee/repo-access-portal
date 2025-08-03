@@ -1,7 +1,7 @@
 name: "Invite on Access Request"
 
 permissions:
-  issues: write
+  issues: write      # allow GITHUB_TOKEN to post comments & update issues
   contents: read
 
 on:
@@ -11,42 +11,46 @@ on:
       - labeled
 
 jobs:
-  # 1. Acknowledge new requests
-  acknowledge:
-    if: github.event.action == 'opened'
+  process-request:
     runs-on: ubuntu-latest
+
     steps:
+      # ───────────────────────────────────────────────────────────
+      # 1) ACKNOWLEDGE NEW REQUESTS
+      # ───────────────────────────────────────────────────────────
       - name: Acknowledge request
+        if: github.event.action == 'opened'
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Thanks @${{ github.event.issue.user.login }}!  
-            Your access request has been received. A maintainer will review it shortly.
-      - name: Assign to maintainer
-        uses: peter-evans/assign-issue@v2
-        with:
-          issue-number: ${{ github.event.issue.number }}
-          assignees: jseihee
+            Hi @${{ github.event.issue.user.login }}, thanks for your request!  
+            I’ll review it shortly and let you know when it’s approved.
 
-  # 2. Invite once approved
-  invite:
-    needs: acknowledge
-    if: |
-      github.event.action == 'labeled' && 
-      github.event.label.name == 'approved'
-    runs-on: ubuntu-latest
-    steps:
+      - name: Assign to maintainer
+        if: github.event.action == 'opened'
+        run: |
+          curl -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/jseihee/repo-access-portal/issues/${{ github.event.issue.number }} \
+            -d '{"assignees":["jseihee"]}'
+        # Uses the Issues API to assign the issue to you—triggers an email/notification :contentReference[oaicite:0]{index=0}
+
+      # ───────────────────────────────────────────────────────────
+      # 2) INVITE ON APPROVAL
+      # ───────────────────────────────────────────────────────────
       - name: Extract GitHub username
+        if: github.event.action == 'labeled' && github.event.label.name == 'approved'
         id: extract
         run: |
           BODY="${{ github.event.issue.body }}"
-          USERNAME=$(echo "$BODY" \
-            | awk '/./{ line=$0 } END{ print line }' \
-            | xargs)
+          # last non-empty line is the username
+          USERNAME=$(echo "$BODY" | awk '/./{ line=$0 } END{ print line }' | xargs)
           echo "username=$USERNAME" >> $GITHUB_OUTPUT
 
-      - name: Invite user to private repo via API
+      - name: Send invite to private repo
+        if: github.event.action == 'labeled' && github.event.label.name == 'approved'
         run: |
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.PERSONAL_TOKEN }}" \
@@ -54,11 +58,21 @@ jobs:
             https://api.github.com/repos/jseihee/senescence-classif/collaborators/${{ steps.extract.outputs.username }} \
             -d '{"permission":"pull"}'
 
-      - name: Comment confirmation
+      - name: Confirm approval
+        if: github.event.action == 'labeled' && github.event.label.name == 'approved'
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Hi @${{ steps.extract.outputs.username }}!  
-            Your request has been **approved** and an invite has been sent.  
+            @${{ steps.extract.outputs.username }} — your request has been **approved**!  
+            I’ve just sent you an invite to **jseihee/senescence-classif** (read access).  
             Please check your GitHub notifications to accept.
+
+      - name: Close the request
+        if: github.event.action == 'labeled' && github.event.label.name == 'approved'
+        run: |
+          curl -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/jseihee/repo-access-portal/issues/${{ github.event.issue.number }} \
+            -d '{"state":"closed"}'
