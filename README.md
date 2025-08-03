@@ -13,7 +13,7 @@ Users open a formatted issue to request access, and a GitHub Action sends the in
 2. Click **Issues → New issue**.
 3. Select the **Access Request** template.
 4. Enter your **GitHub username** in the form and submit.
-5. You’ll receive a collaborator invite to the private repository shortly. Check your GitHub notifications or email to accept.
+5. A maintainer will review your request. If approved, you’ll receive an invite to the private repository.
 
 ---
 
